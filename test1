@@ -1,0 +1,134 @@
+import { Component, OnInit } from '@angular/core';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+
+
+// Import envirnoment variable
+import { environment } from '../../../../environments/environment';
+
+// import services
+import { AuthenticationService } from '../../../shared/services/authentication.service';
+import { DiscussionService } from '../../../shared/services/discussion.service';
+import { UserService } from '../../services/user.service';
+
+import { RoleGuard } from '../../../shared/guards/role.guard';
+
+// import classes
+import { User } from '../../data/user';
+
+import * as io from 'socket.io-client';
+
+@Component({
+  selector: 'app-header',
+  templateUrl: './header.component.html',
+  styleUrls: ['./header.component.css']
+})
+
+export class HeaderComponent implements OnInit {
+  socket = io(environment.API_URL);
+
+  isIn = false; // store state
+  current: User = null;
+  links = [];
+  /**
+   * Constructor.
+   */
+  constructor(
+    private authenticationService: AuthenticationService,
+    private userService: UserService,
+    private discussionService: DiscussionService,
+    private router: Router,
+    public roleGuard: RoleGuard,
+  ) {
+    this.current = authenticationService.getCurrent();
+  }
+
+  /**
+   * Logout.
+   */
+  logout() {
+    localStorage.removeItem(AuthenticationService.TOKEN);
+    localStorage.removeItem(AuthenticationService.CURRENT_USER);
+    this.router.navigate(['/auth/login']);
+  }
+
+  /**
+   * On Init.
+   */
+
+  ngOnInit() {
+
+        
+      //this.getUnReadMessages();
+       // Socket
+      /** this.socket.on('new-message', function (data) {
+        if (this.current.userRole.name !== data.fromRole) {
+          console.log(data);
+          this.getUnReadChats();
+          console.log(this.links);
+          
+        }
+    
+      }.bind(this));
+  **/
+      this.socket.on('new-alert', function(data) {
+        console.log(data);
+        var chatLength = data.chats.length;
+        if (this.current.userRole.name !== data.chats[chatLength - 1].fromRole ){
+          var chatLength = data.chats.length;
+          if (chatLength > 0) {
+            var senderRole = data.chats[chatLength - 1].fromRole;
+            var senderNumber = this.authenticationService.getRoleNumber(senderRole);
+            var sender = data.chats[chatLength - 1].fromUserName;
+            this.links.push({
+              browseLink: '/discuss/interact/' + data.offerID + '/' + data.stepID + '/' + senderNumber,
+              sender: sender
+            });
+          }
+          
+        }
+        
+
+      }.bind(this));
+    
+      
+    }
+    
+ 
+
+  /**
+   * Toggle.
+   */
+  toggleState() {
+    const bool = this.isIn;
+    this.isIn = bool === false ? true : false;
+  }
+
+  /**
+   * Get unread messages based on the user role
+   */
+  getUnReadChats() {
+    var params = {
+      role: this.current.userRole.name,
+      isRead: false
+    };
+    this.discussionService.getDiscussionsByRole(params).subscribe(
+      data => {
+        data.data.forEach(element => {
+          console.log(element);
+
+          var chatLength = element.chats.length;
+          if (chatLength > 0) {
+            var senderRole = element.chats[chatLength - 1].fromRole;
+            var senderNumber = this.authenticationService.getRoleNumber(senderRole);
+            var sender = element.chats[chatLength - 1].fromUserName;
+            this.links.push({
+              browseLink: '/discuss/interact/' + element.offerID + '/' + element.stepID + '/' + senderNumber,
+              sender: sender
+            });
+          }
+        });
+      }
+    );
+  }
+}
