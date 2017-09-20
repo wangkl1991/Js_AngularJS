@@ -1,0 +1,163 @@
+var repository = require('../data/discussion.repository');
+
+class offerService {
+
+  /**
+   * Find.
+   * @param {*} filter
+   * @param {*} callback
+   */
+  find(filter, callback) {
+    return repository.find(filter, callback)
+  }
+
+  /**
+   * Find one.
+   * @param {*} filter
+   * @param {*} CreateIfnull
+   * @param {*} callback
+   */
+  findOne(filter, CreateIfnull, callback) {
+    return repository.findOne(filter, CreateIfnull, callback)
+  }
+
+  /**
+   * Find one and update.
+   * @param {*} filter
+   * @param {*} update
+   * @param {*} options
+   * @param {*} callback
+   */
+  findOneAndUpdate(filter, update, options, callback) {
+    return repository.findOneAndUpdate(filter, update, options, callback);
+  }
+
+  /**
+   * Find one and remove.
+   * @param {*} conditions
+   * @param {*} options
+   * @param {*} callback
+   */
+  findOneAndRemove(conditions, options, callback) {
+    return repository.findOneAndRemove(conditions, options, callback);
+  }
+
+  /**
+   * find discussion by query
+   * This method will find a discussion based on the participants roles, offerID and StepID.
+   * @param {*} filter
+   * @param {*} CreateIfnull
+   * @param {*} callback
+   */
+  findOneByQuery(filter, CreateIfnull, callback) {
+    var query = [];
+    filter.participants.forEach(element => {
+      query.push({ "participants.role": element.role });
+    });
+    query.push({ "offerID": filter.offerID });
+    query.push({ "stepID": filter.stepID });
+
+    repository.findOne({ "$and": query }, false, function (findResult) {
+      if (findResult.success) {
+        findResult.data.participants.forEach(element => {
+          if (element.role == filter.current.userRole.name) {
+            element.isRead = true;
+          }
+        })
+        findResult.data.save();
+        callback(findResult);
+      }
+      else {
+        if (CreateIfnull) {
+          repository.save(filter, function (result) {
+            callback(result);
+          })
+        }
+        else {
+          callback({ message: 'get discussion error', success: false, data: null });
+        }
+      }
+    })
+  }
+
+  /**
+   * find discussion by participant and unread message
+   * @param {*} filter
+   * @param {*} CreateIfnull
+   * @param {*} callback
+   */
+  findDiscussionsByRole(filter, callback) {
+    var query = {"participants": {  $elemMatch: { "role": filter.role, "isRead": filter.isRead }}};
+
+    repository.find(query, function (findResult) {
+      if (findResult.success) {
+        callback(findResult);
+      }
+      else {
+        callback({ message: 'get discussions error', success: false, data: null });
+      }
+    })
+  }
+
+  /**
+   * Remove.
+   */
+  remove() {
+    return repository.remove()
+  }
+
+  /**
+   * Save.
+   * @param {*} filter
+   * @param {*} callback
+   */
+  save(message, callback) {
+
+    return repository.save(message, callback)
+  }
+
+  /**
+   * Save message.
+   * @param {*} filter
+   * @param {*} callback
+   */
+  saveChat(chat, callback) {
+
+    global.io.emit('new-message', chat);
+
+    
+    repository.findOne({ _id: chat.id }, false, function (result) {
+      if (result.success) {
+
+        var discussion = result.data;
+        console.log(discussion.chats)
+        if(discussion.chats === null){
+            discussion.chats = [result.data];
+        }else{
+          discussion.chats.push(chat);
+        }
+        
+        // Update interaction alert.
+        discussion.participants.forEach(element => {
+          if (element.role != chat.fromRole) element.isRead = false;
+        })
+        discussion.save();
+        var alert = discussion;
+        //var alert = new discussion();
+        //alert = discussion;
+        alert.chats = discussion.chats[discussion.chats.length -1]
+        console.log(alert);
+
+        global.io.emit('new-alert', alert);
+        
+        callback({ message: 'send message sucessfully', success: true, data: chat })
+      }
+      else {
+        callback({ message: 'get discussions error', success: false, data: null })
+      }
+    })
+  }
+
+}
+
+module.exports = new offerService();
