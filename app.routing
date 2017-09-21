@@ -1,0 +1,29 @@
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+
+import { HomeComponent } from './home/home/home.component';
+
+import { EditProfileComponent } from './user/edit-profile/edit-profile.component';
+import { ViewUsersComponent } from './user/view-users/view-users.component';
+
+/**
+ * We have to route all of the requests to the home module.  From there,
+ * the request will be routed to the appropriate child routes.  Each child
+ * will use either the public or private component template to render the
+ * header and footer.
+ */
+const routes: Routes = [
+  { path: '', redirectTo: 'auth', pathMatch: 'full' },
+//  { path: '', component: HomeComponent, children: [] },
+//  { path: '', redirectTo: 'home', pathMatch: 'full' },
+];
+
+@NgModule({
+  imports: [
+    RouterModule.forRoot(routes),
+  ],
+  exports: [
+    RouterModule
+  ]
+})
+export class AppRoutingModule { }
