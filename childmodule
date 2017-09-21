@@ -1,0 +1,32 @@
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+import { OfferModule } from './../offer/offer.module';
+import { DiscussionModule } from './../discussion/discussion.module';
+
+import { HomeComponent } from './home/home.component';
+
+import { HeaderComponent } from './../shared/layout/header/header.component';
+import { FooterComponent } from './../shared/layout/footer/footer.component';
+
+
+import { HomeRoutingModule } from './home.routing';
+import { PublicComponent } from './public/public.component';
+import { PrivateComponent } from './private/private.component';
+
+@NgModule({
+  imports: [
+    CommonModule,
+    HomeRoutingModule,
+    DiscussionModule,
+    OfferModule,
+  ],
+  declarations: [
+    HomeComponent,
+    HeaderComponent,
+    FooterComponent,
+    PublicComponent,
+    PrivateComponent
+  ],
+})
+export class HomeModule { }
